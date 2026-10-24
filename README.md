@@ -1,0 +1,2 @@
+# BTCBEATERCOIN
+Official coin
