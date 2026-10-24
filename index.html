@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTC BEATER COIN - Mining App</title>
+  <!-- Ethers.js Web3 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+    body { background-color: #0b0f19; color: #ffffff; padding: 15px; }
+    .container { max-width: 480px; margin: 0 auto; }
+    
+    /* Auth Forms */
+    .auth-card { background: #161c2e; padding: 25px; border-radius: 16px; border: 1px solid #232d42; margin-top: 30px; text-align: center; }
+    .auth-card h2 { color: #f59e0b; margin-bottom: 15px; }
+    .input-box { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; outline: none; }
+    .btn-main { background: #f59e0b; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; font-size: 15px; }
+    
+    /* Google Button Style */
+    .btn-google { background: #ffffff; color: #000000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 12px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-google img { width: 18px; height: 18px; }
+
+    .divider { margin: 15px 0; font-size: 12px; color: #64748b; position: relative; }
+    .divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: #334155; }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    .switch-link { margin-top: 15px; font-size: 12px; color: #94a3b8; cursor: pointer; }
+    .switch-link span { color: #38bdf8; text-decoration: underline; }
+
+    /* Main Dashboard */
+    #dashboardSection { display: none; }
+    
+    .header { display: flex; align-items: center; justify-content: space-between; background: #161c2e; padding: 12px 16px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #232d42; }
+    .profile-section { display: flex; align-items: center; gap: 12px; }
+    .avatar-wrapper { position: relative; width: 48px; height: 48px; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; }
+    .user-info h4 { font-size: 15px; font-weight: 600; }
+    .user-info p { font-size: 11px; color: #94a3b8; }
+    .btn-logout { background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+
+    .presale-card { background: linear-gradient(135deg, #1e1b4b 0%, #31103f 100%); border: 1px solid #6366f1; border-radius: 14px; padding: 15px; margin-bottom: 15px; text-align: center; }
+    .presale-title { font-size: 11px; text-transform: uppercase; color: #a5b4fc; }
+    .presale-price { font-size: 22px; font-weight: bold; color: #4ade80; margin: 4px 0; }
+    .supply-badge { display: inline-block; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; font-size: 11px; color: #cbd5e1; }
+
+    .wallet-card { background: #161c2e; padding: 14px; border-radius: 12px; border: 1px solid #232d42; margin-bottom: 15px; text-align: center; }
+    .btn-connect { background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; font-size: 14px; }
+    .wallet-address { font-size: 12px; color: #38bdf8; word-break: break-all; font-family: monospace; }
+
+    .mining-card { background: #161c2e; padding: 20px; border-radius: 16px; border: 1px solid #f59e0b33; text-align: center; }
+    .coin-icon { width: 70px; height: 70px; background: radial-gradient(circle, #f59e0b 0%, #b45309 100%); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #fff; box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+    .balance-title { font-size: 12px; color: #94a3b8; text-transform: uppercase; }
+    .balance-value { font-size: 30px; font-weight: 800; color: #ffffff; margin: 5px 0; }
+    .usd-value { font-size: 13px; color: #22c55e; margin-bottom: 15px; font-weight: 600; }
+    
+    .mining-btn { background: #f59e0b; color: #000; border: none; padding: 14px 28px; border-radius: 30px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; }
+    .mining-btn:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+    .timer { margin-top: 10px; font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- AUTH SECTION (Login / Signup) -->
+  <div id="authSection">
+    
+    <!-- Register Box -->
+    <div id="signupBox" class="auth-card">
+      <h2>Create Account</h2>
+      <input type="text" id="regName" class="input-box" placeholder="Full Name">
+      <input type="email" id="regEmail" class="input-box" placeholder="Email Address">
+      <input type="password" id="regPass" class="input-box" placeholder="Password">
+      <button class="btn-main" onclick="registerUser()">REGISTER</button>
+      
+      <div class="divider">OR</div>
+      <button class="btn-google" onclick="googleLogin()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Continue with Google
+      </button>
+
+      <div class="switch-link" onclick="toggleAuth(true)">Already have an account? <span>Login</span></div>
+    </div>
+
+    <!-- Login Box -->
+    <div id="loginBox" class="auth-card" style="display:none;">
+      <h2>User Login</h2>
+      <input type="email" id="loginEmail" class="input-box" placeholder="Email Address">
+      <input type="password" id="loginPass" class="input-box" placeholder="Password">
+      <button class="btn-main" onclick="loginUser()">LOGIN</button>
+      
+      <div class="divider">OR</div>
+      <button class="btn-google" onclick="googleLogin()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Continue with Google
+      </button>
+
+      <div class="switch-link" onclick="toggleAuth(false)">Don't have an account? <span>Register</span></div>
+    </div>
+
+  </div>
+
+  <!-- MAIN DASHBOARD SECTION -->
+  <div id="dashboardSection">
+
+    <!-- Header & Profile -->
+    <div class="header">
+      <div class="profile-section">
+        <div class="avatar-wrapper">
+          <img id="userAvatar" class="avatar" src="https://via.placeholder.com/150/1e293b/ffffff?text=User" alt="Avatar">
+        </div>
+        <div class="user-info">
+          <h4 id="userNameDisplay">User Name</h4>
+          <p id="userEmailDisplay">user@example.com</p>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logoutUser()">Logout</button>
+    </div>
+
+    <!-- Presale Price Banner -->
+    <div class="presale-card">
+      <div class="presale-title">🔥 Presale Rate</div>
+      <div class="presale-price">1 BTB = $10.00 USD</div>
+      <div class="supply-badge">🔒 Total Supply: 2,100,000 BTB</div>
+    </div>
+
+    <!-- Web3 Wallet Section -->
+    <div class="wallet-card">
+      <button id="connectBtn" class="btn-connect" onclick="connectWallet()">Connect Web3 Wallet</button>
+      <div id="walletDisplay" class="wallet-address" style="display:none;"></div>
+    </div>
+
+    <!-- Mining Dashboard -->
+    <div class="mining-card">
+      <div class="coin-icon">₿</div>
+      <div class="balance-title">Mined BTC BEATER Balance</div>
+      <div id="btbBalance" class="balance-value">0.000000 BTB</div>
+      <div id="usdBalance" class="usd-value">≈ $0.00 USD</div>
+
+      <button id="mineBtn" class="mining-btn" onclick="startMining()">START 24H MINING</button>
+      <div id="timerText" class="timer">Session Inactive</div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Firebase SDKs Module -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // Your Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCtQ4-okMMXjkRoukueC58xw0kxhqR7c1U",
+    authDomain: "btcbeatercoin.firebaseapp.com",
+    projectId: "btcbeatercoin",
+    storageBucket: "btcbeatercoin.firebasestorage.app",
+    messagingSenderId: "109192643783",
+    appId: "1:109192643783:web:fae7a6d01612eb3f442ae2",
+    measurementId: "G-RQ699VBHP2"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const googleProvider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let userData = null;
+  let miningInterval = null;
+  const tokenPrice = 10.0;
+  const miningRatePerSec = 0.000001388;
+
+  // Auth Toggle Switch
+  window.toggleAuth = function(showLogin) {
+    document.getElementById('signupBox').style.display = showLogin ? 'none' : 'block';
+    document.getElementById('loginBox').style.display = showLogin ? 'block' : 'none';
+  }
+
+  // Google Login Handler
+  window.googleLogin = async function() {
+    try {
+      const res = await signInWithPopup(auth, googleProvider);
+      const user = res.user;
+
+      // Check if user already exists in Firestore
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      if (!snap.exists()) {
+        // First time Google login - Save user info
+        await setDoc(userRef, {
+          name: user.displayName || "Google User",
+          email: user.email,
+          photoURL: user.photoURL || "https://via.placeholder.com/150",
+          balance: 0.0,
+          walletAddress: "",
+          lastMiningStart: 0
+        });
+      }
+    } catch (err) {
+      alert("Google Login Error: " + err.message);
+    }
+  }
+
+  // Email/Password Register
+  window.registerUser = async function() {
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const pass = document.getElementById('regPass').value;
+
+    if (!name || !email || !pass) return alert("Please fill all fields");
+
+    try {
+      const res = await createUserWithEmailAndPassword(auth, email, pass);
+      const uid = res.user.uid;
+
+      await setDoc(doc(db, "users", uid), {
+        name: name,
+        email: email,
+        photoURL: "https://via.placeholder.com/150",
+        balance: 0.0,
+        walletAddress: "",
+        lastMiningStart: 0
+      });
+
+      alert("Account created successfully!");
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // Email/Password Login
+  window.loginUser = async function() {
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPass').value;
+
+    if (!email || !pass) return alert("Enter email and password");
+
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // Logout
+  window.logoutUser = function() {
+    signOut(auth);
+  }
+
+  // Real-time Auth State Listener
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('authSection').style.display = 'none';
+      document.getElementById('dashboardSection').style.display = 'block';
+
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        userData = snap.data();
+        document.getElementById('userNameDisplay').innerText = userData.name || user.displayName;
+        document.getElementById('userEmailDisplay').innerText = userData.email || user.email;
+
+        // Display Profile Photo if available
+        if (userData.photoURL || user.photoURL) {
+          document.getElementById('userAvatar').src = userData.photoURL || user.photoURL;
+        }
+
+        if (userData.walletAddress) {
+          showWalletUI(userData.walletAddress);
+        }
+
+        syncMiningState(userData);
+      }
+    } else {
+      currentUser = null;
+      document.getElementById('authSection').style.display = 'block';
+      document.getElementById('dashboardSection').style.display = 'none';
+      if (miningInterval) clearInterval(miningInterval);
+    }
+  });
+
+  // Web3 Wallet Connect
+  window.connectWallet = async function() {
+    if (!currentUser) return;
+    let walletAddr = "";
+
+    if (window.ethereum) {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        walletAddr = await signer.getAddress();
+      } catch (e) {
+        alert("Wallet connection cancelled.");
+        return;
+      }
+    } else {
+      walletAddr = "0x71C829A0982319208112" + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    showWalletUI(walletAddr);
+
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      walletAddress: walletAddr
+    });
+  }
+
+  function showWalletUI(addr) {
+    document.getElementById('connectBtn').style.display = 'none';
+    const display = document.getElementById('walletDisplay');
+    display.style.display = 'block';
+    display.innerText = "Wallet: " + addr.substring(0, 6) + "..." + addr.substring(addr.length - 4);
+  }
+
+  // Mining Engine Logic
+  window.startMining = async function() {
+    if (!userData || !userData.walletAddress) {
+      alert("Please connect your Web3 Wallet before mining!");
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    userData.lastMiningStart = now;
+
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      lastMiningStart: now
+    });
+
+    syncMiningState(userData);
+  }
+
+  function syncMiningState(data) {
+    const now = Math.floor(Date.now() / 1000);
+    const lastStart = data.lastMiningStart || 0;
+    const elapsed = now - lastStart;
+    const totalMiningTime = 86400;
+
+    if (lastStart > 0 && elapsed < totalMiningTime) {
+      let currentBal = (data.balance || 0) + (elapsed * miningRatePerSec);
+      let remainingSeconds = totalMiningTime - elapsed;
+
+      document.getElementById('mineBtn').disabled = true;
+      document.getElementById('mineBtn').innerText = "⚡ MINING ACTIVE";
+
+      if (miningInterval) clearInterval(miningInterval);
+
+      miningInterval = setInterval(async () => {
+        if (remainingSeconds > 0) {
+          currentBal += miningRatePerSec;
+          remainingSeconds--;
+
+          updateMiningUI(currentBal, remainingSeconds);
+
+          if (remainingSeconds % 30 === 0 && currentUser) {
+            await updateDoc(doc(db, "users", currentUser.uid), {
+              balance: currentBal
+            });
+          }
+        } else {
+          clearInterval(miningInterval);
+          document.getElementById('mineBtn').disabled = false;
+          document.getElementById('mineBtn').innerText = "START 24H MINING";
+          document.getElementById('timerText').innerText = "Session Complete!";
+        }
+      }, 1000);
+
+    } else {
+      let finalBal = data.balance || 0;
+      if (lastStart > 0 && elapsed >= totalMiningTime) {
+        finalBal += (totalMiningTime * miningRatePerSec);
+      }
+      updateMiningUI(finalBal, 0);
+      document.getElementById('mineBtn').disabled = false;
+      document.getElementById('mineBtn').innerText = "START 24H MINING";
+      document.getElementById('timerText').innerText = "Session Inactive";
+    }
+  }
+
+  function updateMiningUI(bal, secLeft) {
+    document.getElementById('btbBalance').innerText = bal.toFixed(6) + " BTB";
+    document.getElementById('usdBalance').innerText = "≈ $" + (bal * tokenPrice).toFixed(2) + " USD";
+
+    if (secLeft > 0) {
+      const h = Math.floor(secLeft / 3600);
+      const m = Math.floor((secLeft % 3600) / 60);
+      const s = secLeft % 60;
+      document.getElementById('timerText').innerText = `Remaining: ${h}h ${m}m ${s}s`;
+    }
+  }
+</script>
+
+</body>
+</html>
